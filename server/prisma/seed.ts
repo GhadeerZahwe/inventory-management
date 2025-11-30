@@ -1,23 +1,24 @@
 import { PrismaClient } from "@prisma/client";
-import fs from "fs";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
+
 const prisma = new PrismaClient();
 
-async function deleteAllData(orderedFileNames: string[]) {
-  const modelNames = orderedFileNames.map((fileName) => {
-    const modelName = path.basename(fileName, path.extname(fileName));
-    return modelName.charAt(0).toUpperCase() + modelName.slice(1);
-  });
+// Helper to capitalize model names
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
-  for (const modelName of modelNames) {
-    const model: any = prisma[modelName as keyof typeof prisma];
+// Delete tables in child → parent order
+async function deleteAllData(deleteOrder: string[]) {
+  for (const fileName of deleteOrder) {
+    const modelName = path.basename(fileName, path.extname(fileName));
+    const model: any = prisma[capitalize(modelName)];
     if (model) {
       await model.deleteMany({});
-      console.log(`Cleared data from ${modelName}`);
+      console.log(`Cleared data from ${capitalize(modelName)}`);
     } else {
-      console.error(
-        `Model ${modelName} not found. Please ensure the model name is correctly specified.`
-      );
+      console.error(`Model ${capitalize(modelName)} not found.`);
     }
   }
 }
@@ -25,26 +26,44 @@ async function deleteAllData(orderedFileNames: string[]) {
 async function main() {
   const dataDirectory = path.join(__dirname, "seedData");
 
-const orderedFileNames = [
-  "sales.json",
-  "salesSummary.json",
-  "purchases.json",
-  "purchaseSummary.json",
-  "expenses.json",
-  "expenseByCategory.json",
-  "expenseSummary.json",
-  "products.json",
-  "users.json"
-];
+  // Child → Parent order for deletion
+  const deleteOrder = [
+    "sales.json",
+    "salesSummary.json",
+    "purchases.json",
+    "purchaseSummary.json",
+    "expenses.json",
+    "expenseByCategory.json",
+    "expenseSummary.json",
+    "products.json",
+    "users.json",
+  ];
 
+  await deleteAllData(deleteOrder);
 
-  await deleteAllData(orderedFileNames);
+  // Parent → Child order for seeding
+  const seedOrder = [
+    "users.json",
+    "products.json",
+    "expenseByCategory.json",
+    "expenses.json",
+    "expenseSummary.json",
+    "purchases.json",
+    "purchaseSummary.json",
+    "sales.json",
+    "salesSummary.json",
+  ];
 
-  for (const fileName of orderedFileNames) {
+  for (const fileName of seedOrder) {
     const filePath = path.join(dataDirectory, fileName);
+    if (!fs.existsSync(filePath)) {
+      console.error(`Seed file not found: ${fileName}`);
+      continue;
+    }
+
     const jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     const modelName = path.basename(fileName, path.extname(fileName));
-    const model: any = prisma[modelName as keyof typeof prisma];
+    const model: any = prisma[capitalize(modelName)];
 
     if (!model) {
       console.error(`No Prisma model matches the file name: ${fileName}`);
@@ -52,12 +71,10 @@ const orderedFileNames = [
     }
 
     for (const data of jsonData) {
-      await model.create({
-        data,
-      });
+      await model.create({ data });
     }
 
-    console.log(`Seeded ${modelName} with data from ${fileName}`);
+    console.log(`Seeded ${capitalize(modelName)} with data from ${fileName}`);
   }
 }
 
