@@ -33,21 +33,6 @@ By validating everything offline first:
 
 ---
 
-## Why AWS Was Chosen
-AWS was intentionally chosen over “click-and-deploy” platforms.
-
-Reasons:
-- AWS is a **highly valued skill** in the job market
-- It demonstrates understanding of **infrastructure**, not just frontend apps
-- Employers look for engineers who can:
-  - Design secure systems
-  - Understand networking
-  - Manage servers and costs
-
-This project focuses on **real engineering skills**, not just visuals.
-
----
-
 ## AWS Free Tier & Cost Awareness
 AWS provides a Free Tier, but **free does not mean safe by default**.
 
@@ -240,7 +225,7 @@ echo "PORT=80" > .env
 npm start
 ```
 
-PM2 — Process Manager
+## PM2 — Process Manager
 PM2 ensures the backend stays running even if:
 - SSH disconnects
 - EC2 restarts
